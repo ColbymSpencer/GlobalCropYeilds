@@ -1,0 +1,70 @@
+---
+title: "CropYields"
+author: "Colby S"
+date: "12/10/2020"
+output: html_document
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+```{r}
+# in an app its better to load libraries as individual packages
+library(dplyr)
+library(ggplot2)
+library(forcats)
+
+yields_tidy <- readRDS("yields-tidy.rds")
+# i had to set the rds to be my working directory with this command in console : setwd("crop-yields-shiny")
+```
+
+
+## Crop Yields
+
+```{r}
+
+plot_yields <- function(tbl) {
+  tbl %>%
+    mutate(crop = fct_reorder(crop, yield)) %>%
+      ggplot(aes(color = entity, x = year, y = yield)) +
+      geom_line() +
+      facet_wrap(~ crop) +
+      labs(x = "Year",
+       y = "Yield (tonnes per hectare)",
+       title = "Crop Yields",
+       color = "Country")
+}
+
+# yields_tidy %>%
+#   filter(code %in% c("USA", "IND")) %>%
+#   plot_yields()
+
+```
+
+```{r eruptions, echo=FALSE}
+
+# i did not have shiny installed so i ran into errors with R not recognizing inputPanel function lol
+
+# entity aka countries is what the input variable is named (same as the variable name in the dataset), label is just what text will appear above the interface, there is a selection box that allows one to select a country from a list of unique contries, by default USA is selected
+
+inputPanel(
+  # selectInput changed to selectizeInput, selectize allows you to type input and narrows down the selectable options based on your text
+  selectInput(
+    "entity",
+    label = "Country/Continent/Region:",
+    choices = unique(yields_tidy$entity),
+    selected = "United States",
+    selectize = TRUE,
+    multiple = TRUE
+  )
+)
+renderPlot({
+  yields_tidy %>%
+    # first time using %in%, it basically serches for "entity" in the list "input$entity" 
+    filter(entity %in% input$entity) %>%
+    plot_yields()
+})
+```
+
