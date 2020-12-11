@@ -15,6 +15,7 @@ knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 library(dplyr)
 library(ggplot2)
 library(forcats)
+library(shiny)
 
 yields_tidy <- readRDS("yields-tidy.rds")
 # i had to set the rds to be my working directory with this command in console : setwd("crop-yields-shiny")

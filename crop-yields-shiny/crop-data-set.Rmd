@@ -1,0 +1,95 @@
+---
+title: "Crop Yeilds Analysis"
+author: "Colby S"
+date: "12/8/2020"
+output: html_document
+---
+
+Before I begin, I must acknowlege that I am working with a dataset from Tidy Tuesday's gethub. Many people have analyzed this data and I used them for referenece. Many of the functions I used I found out about by seeing other people use them on this dataset.  
+
+Import the datasets /libraries
+```{r Import Libraries and Packages}
+# libraries
+library(tidyverse)
+library(tidytuesdayR)
+library(scales)
+library(janitor)
+
+
+# import dataset
+tt <- tidytuesdayR::tt_load('2020-09-01')
+class(tt$arable_land_pin)
+# interesting classes, special table df and such, i have not worked with these before
+
+```
+
+
+```{r clean_datasets}
+crop_yields <- tt$key_crop_yields %>%
+  # change names to "snake_case"
+  janitor::clean_names() %>%
+  # cool function Ive not used before, removes text after and including the indicated text, the function knows to delete what comes after becasue of the .* mark
+  rename_all(str_remove, "_tonnes.*")
+
+arable_land <- tt$arable_land_pin %>%
+  # using the col number instead of the name is handy when the names are so long like ehy are in this dataset
+  rename(arable_land_needed = 4) %>%
+  clean_names()
+  
+fertilizer <- tt$cereal_crop_yield_vs_fertilizer_application %>%
+  clean_names() %>%
+  rename(yield = 4,
+         fertilizer_use = 5)
+
+tt$cereal_yields_vs_tractor_inputs_in_agriculture %>%
+  clean_names()
+
+land_use <- tt$land_use_vs_yield_change_in_cereal_production %>%
+  clean_names() %>%
+  # short for delta land area, or change in land area
+  rename(d_land_area = 5)
+```
+
+janitor is a very hand package that I have seen often across R resources. On some tt datasets the dataset page even recommends using it. Im sure glad I did!
+
+```{r yields_data}
+# faceted line graph ----
+crop_yields %>%
+  pivot_longer(cols = 4:14,
+               names_to = "crop",
+               values_to = "yield") %>%
+  na.omit() %>%
+  filter(code == "USA") %>%
+  mutate(crop = fct_reorder(crop, yield)) %>%
+  # fct_reorder reorders the crop variables as a factor, this command makes crops on the key roughly follow their appearance in order of their yeild. Because a function is not specified I think the function will just take  the last recoded yield for each crop. This is not bad for this application but it is something to be aware of
+  ggplot(aes(color = crop, x = year, y = yield)) +
+  geom_line() +
+  facet_wrap(~ crop)
+
+# line graph ----
+crop_yields %>%
+  pivot_longer(cols = 4:14,
+               names_to = "crop",
+               values_to = "yield") %>%
+  na.omit() %>%
+  filter(code == "USA") %>%
+  mutate(crop = fct_reorder(crop, yield)) %>%
+  # fct_reorder reorders the crop variables as a factor, this command makes crops on the key roughly follow their appearance in order of their yeild. Because a function is not specified I think the function will just take  the last recoded yield for each crop. This is not bad for this application but it is something to be aware of
+  ggplot(aes(color = crop, x = year, y = yield)) +
+  geom_line() +
+  labs(x = "Year",
+       y = "Yield (tonnes per hectare)",
+       title = "US Crop Yields")
+```
+
+To create a shiny flex dashboard I must convert the data to an rds file. An rds file is a type of file that stores objects in R. Saving a file as an rds is more useful than saving it as another common filetype like csv when metadata is important. In this dataset we have metadata and different data types so saving it as a rds is appropriate. 
+```{r make_rds.file}
+crop_yields %>%
+  pivot_longer(cols = 4:14,
+               names_to = "crop",
+               values_to = "yield") %>%
+  na.omit() %>%
+  write_rds("crop-yields-shiny/yields-tidy.rds")
+
+```
+
